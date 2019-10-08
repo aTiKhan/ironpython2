@@ -260,8 +260,7 @@ Handle an exception by displaying it with a traceback on sys.stderr._")]
 
         public static void setdefaultencoding(CodeContext context, object name) {
             if (name == null) throw PythonOps.TypeError("name cannot be None");
-            string strName = name as string;
-            if (strName == null) throw PythonOps.TypeError("name must be a string");
+            if (!(name is string strName)) throw PythonOps.TypeError("name must be a string");
 
             PythonContext pc = context.LanguageContext;
             Encoding enc;
@@ -316,7 +315,7 @@ Handle an exception by displaying it with a traceback on sys.stderr._")]
         // version and version_info are set by PythonContext
         public static PythonTuple subversion = PythonTuple.MakeTuple("IronPython", "", "");
 
-        public const string winver = CurrentVersion.Series;
+        public static readonly string winver = CurrentVersion.Series;
 
         #region Special types
 
@@ -541,11 +540,11 @@ Handle an exception by displaying it with a traceback on sys.stderr._")]
                 return f._tuple * n;
             }
 
-            public static object operator *([NotNull]SysFlags f, [NotNull]Index n) {
+            public static object operator *([NotNull]SysFlags f, [NotNull]Runtime.Index n) {
                 return f._tuple * n;
             }
 
-            public static object operator *([NotNull]Index n, [NotNull]SysFlags f) {
+            public static object operator *([NotNull]Runtime.Index n, [NotNull]SysFlags f) {
                 return f._tuple * n;
             }
 
@@ -697,6 +696,8 @@ Handle an exception by displaying it with a traceback on sys.stderr._")]
             }
         }
 
+        public static string float_repr_style = "legacy";
+
         public static floatinfo float_info = new floatinfo(
             Double.MaxValue,    // DBL_MAX
             1024,               // DBL_MAX_EXP
@@ -779,14 +780,12 @@ Handle an exception by displaying it with a traceback on sys.stderr._")]
 
             // add zipimport to the path hooks for importing from zip files.
             try {
-                PythonModule zipimport = Importer.ImportModule(
+                if (Importer.ImportModule(
                     context.SharedClsContext, context.SharedClsContext.GlobalDict,
-                    "zipimport", false, -1) as PythonModule;
-                if (zipimport != null) {
+                    "zipimport", false, -1) is PythonModule zipimport) {
                     object zipimporter = PythonOps.GetBoundAttr(
                         context.SharedClsContext, zipimport, "zipimporter");
-                    List path_hooks = dict["path_hooks"] as List;
-                    if (path_hooks != null && zipimporter != null) {
+                    if (dict["path_hooks"] is List path_hooks && zipimporter != null) {
                         path_hooks.Add(zipimporter);
                     }
                 }

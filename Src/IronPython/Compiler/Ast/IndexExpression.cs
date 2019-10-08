@@ -41,13 +41,11 @@ namespace IronPython.Compiler.Ast {
         }
 
         private MSAst.Expression[] GetActionArgumentsForGetOrDelete() {
-            TupleExpression te = _index as TupleExpression;
-            if (te != null && te.IsExpandable) {
+            if (_index is TupleExpression te && te.IsExpandable) {
                 return ArrayUtils.Insert(_target, te.Items);
             }
 
-            SliceExpression se = _index as SliceExpression;
-            if (se != null) {
+            if (_index is SliceExpression se) {
                 if (se.StepProvided) {
                     return new[] { 
                         _target,
@@ -120,12 +118,8 @@ namespace IronPython.Compiler.Ast {
 
         public override void Walk(PythonWalker walker) {
             if (walker.Walk(this)) {
-                if (_target != null) {
-                    _target.Walk(walker);
-                }
-                if (_index != null) {
-                    _index.Walk(walker);
-                }
+                _target?.Walk(walker);
+                _index?.Walk(walker);
             }
             walker.PostWalk(this);
         }

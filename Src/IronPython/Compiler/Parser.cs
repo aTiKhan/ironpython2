@@ -388,8 +388,7 @@ namespace IronPython.Compiler {
                 return "None";
             }
 
-            NameToken n = t as NameToken;
-            if (n == null) {
+            if (!(t is NameToken n)) {
                 ReportSyntaxError("syntax error");
                 return null;
             }
@@ -399,8 +398,7 @@ namespace IronPython.Compiler {
         }
 
         private string ReadName() {
-            NameToken n = PeekToken() as NameToken;
-            if (n == null) {
+            if (!(PeekToken() is NameToken n)) {
                 ReportSyntaxError(_lookahead);
                 return null;
             }
@@ -1131,9 +1129,7 @@ namespace IronPython.Compiler {
                 decorator.SetLoc(_globalParent, start, GetEnd());
 
                 if (MaybeEat(TokenKind.LeftParenthesis)) {
-                    if (_sink != null) {
-                        _sink.StartParameters(GetSourceSpan());
-                    }
+                    _sink?.StartParameters(GetSourceSpan());
                     Arg[] args = FinishArgumentList(null);
                     decorator = FinishCallExpr(decorator, args);
                 }
@@ -1941,8 +1937,7 @@ namespace IronPython.Compiler {
             Expression ret = ParseFactor();
             while (true) {
                 Token t = PeekToken();
-                OperatorToken ot = t as OperatorToken;
-                if (ot == null) return ret;
+                if (!(t is OperatorToken ot)) return ret;
 
                 int prec = ot.Precedence;
                 if (prec >= precedence) {
@@ -2057,12 +2052,10 @@ namespace IronPython.Compiler {
                     NextToken();
                     var start = GetStart();
                     object cv = t.Value;
-                    string cvs = cv as string;
-                    if (cvs != null) {
+                    if (cv is string cvs) {
                         cv = FinishStringPlus(cvs);
                     } else {
-                        Bytes bytes = cv as Bytes;
-                        if (bytes != null) {
+                        if (cv is Bytes bytes) {
                             cv = FinishBytesPlus(bytes);
                         }
                     }
@@ -2283,10 +2276,8 @@ namespace IronPython.Compiler {
         //
         private Arg[] FinishArgListOrGenExpr() {
             Arg a = null;
-            
-            if (_sink != null) {
-                _sink.StartParameters(GetSourceSpan());
-            }
+
+            _sink?.StartParameters(GetSourceSpan());
 
             Token t = PeekToken();
             if (t.Kind != TokenKind.RightParenthesis && t.Kind != TokenKind.Multiply && t.Kind != TokenKind.Power) {
@@ -2307,9 +2298,7 @@ namespace IronPython.Compiler {
                     a = new Arg(ParseGeneratorExpression(e));
                     Eat(TokenKind.RightParenthesis);
                     a.SetLoc(_globalParent, start, GetEnd());
-                    if (_sink != null) {
-                        _sink.EndParameters(GetSourceSpan());
-                    }
+                    _sink?.EndParameters(GetSourceSpan());
                     return new Arg[1] { a };       //  Generator expression is the argument
                 } else {
                     a = new Arg(e);
@@ -2319,15 +2308,11 @@ namespace IronPython.Compiler {
                 //  Was this all?
                 //
                 if (MaybeEat(TokenKind.Comma)) {
-                    if (_sink != null) {
-                        _sink.NextParameter(GetSourceSpan());
-                    }
+                    _sink?.NextParameter(GetSourceSpan());
                 } else {
                     Eat(TokenKind.RightParenthesis);
                     a.SetLoc(_globalParent, start, GetEnd());
-                    if (_sink != null) {
-                        _sink.EndParameters(GetSourceSpan());
-                    }
+                    _sink?.EndParameters(GetSourceSpan());
                     return new Arg[1] { a };
                 }
             }
@@ -2336,8 +2321,7 @@ namespace IronPython.Compiler {
         }
 
         private Arg FinishKeywordArgument(Expression t) {
-            NameExpression n = t as NameExpression;
-            if (n == null) {
+            if (!(t is NameExpression n)) {
                 ReportSyntaxError(IronPython.Resources.ExpectedName);
                 Arg arg = new Arg(null, t);
                 arg.SetLoc(_globalParent, t.StartIndex, t.EndIndex);
@@ -2608,8 +2592,9 @@ namespace IronPython.Compiler {
             var rStart = GetStart();
             var rEnd = GetEnd();
 
-            if (hasRightParenthesis && _sink != null) {
-                _sink.MatchPair(new SourceSpan(_tokenizer.IndexToLocation(lStart), _tokenizer.IndexToLocation(lEnd)), new SourceSpan(_tokenizer.IndexToLocation(rStart), _tokenizer.IndexToLocation(rEnd)), grouping);
+            if (hasRightParenthesis) {
+                _sink?.MatchPair(new SourceSpan(_tokenizer.IndexToLocation(lStart), _tokenizer.IndexToLocation(lEnd)),
+                    new SourceSpan(_tokenizer.IndexToLocation(rStart), _tokenizer.IndexToLocation(rEnd)), grouping);
             }
 
             ret.SetLoc(_globalParent, lStart, rEnd);
@@ -2781,13 +2766,10 @@ namespace IronPython.Compiler {
             var cStart = GetStart();
             var cEnd = GetEnd();
 
-            if (_sink != null) {
-                _sink.MatchPair(
-                    new SourceSpan(_tokenizer.IndexToLocation(oStart), _tokenizer.IndexToLocation(oEnd)), 
-                    new SourceSpan(_tokenizer.IndexToLocation(cStart), _tokenizer.IndexToLocation(cEnd)), 
-                    1
-                );
-            }
+            _sink?.MatchPair(
+                new SourceSpan(_tokenizer.IndexToLocation(oStart), _tokenizer.IndexToLocation(oEnd)), 
+                new SourceSpan(_tokenizer.IndexToLocation(cStart), _tokenizer.IndexToLocation(cEnd)), 
+                1);
 
             if (dictMembers != null || setMembers == null) {
                 SliceExpression[] exprs;
@@ -2813,13 +2795,10 @@ namespace IronPython.Compiler {
 
             var cStart = GetStart();
             var cEnd = GetEnd();
-            if (_sink != null) {
-                _sink.MatchPair(
-                    new SourceSpan(_tokenizer.IndexToLocation(oStart), _tokenizer.IndexToLocation(oEnd)),
-                    new SourceSpan(_tokenizer.IndexToLocation(cStart), _tokenizer.IndexToLocation(cEnd)),
-                    1
-                );
-            }
+            _sink?.MatchPair(
+                new SourceSpan(_tokenizer.IndexToLocation(oStart), _tokenizer.IndexToLocation(oEnd)),
+                new SourceSpan(_tokenizer.IndexToLocation(cStart), _tokenizer.IndexToLocation(cEnd)),
+                1);
 
             var ret = new SetComprehension(item, iters);
             ret.SetLoc(_globalParent, oStart, cEnd);
@@ -2833,14 +2812,12 @@ namespace IronPython.Compiler {
 
             var cStart = GetStart();
             var cEnd = GetEnd();
-            
-            if (_sink != null) {
-                _sink.MatchPair(
-                    new SourceSpan(_tokenizer.IndexToLocation(oStart), _tokenizer.IndexToLocation(oEnd)),
-                    new SourceSpan(_tokenizer.IndexToLocation(cStart), _tokenizer.IndexToLocation(cEnd)),
-                    1
-                );
-            }
+
+            _sink?.MatchPair(
+                new SourceSpan(_tokenizer.IndexToLocation(oStart), _tokenizer.IndexToLocation(oEnd)),
+                new SourceSpan(_tokenizer.IndexToLocation(cStart), _tokenizer.IndexToLocation(cEnd)),
+                1);
+
             var ret = new DictionaryComprehension(key, value, iters);
             ret.SetLoc(_globalParent, oStart, cEnd);
             return ret;
@@ -2924,13 +2901,10 @@ namespace IronPython.Compiler {
             var cStart = GetStart();
             var cEnd = GetEnd();
 
-            if (_sink != null) {
-                _sink.MatchPair(
-                    new SourceSpan(_tokenizer.IndexToLocation(oStart), _tokenizer.IndexToLocation(oEnd)), 
-                    new SourceSpan(_tokenizer.IndexToLocation(cStart), _tokenizer.IndexToLocation(cEnd)), 
-                    grouping
-                );
-            }
+            _sink?.MatchPair(
+                new SourceSpan(_tokenizer.IndexToLocation(oStart), _tokenizer.IndexToLocation(oEnd)),
+                new SourceSpan(_tokenizer.IndexToLocation(cStart), _tokenizer.IndexToLocation(cEnd)),
+                grouping);
 
             ret.SetLoc(_globalParent, oStart, cEnd);
             return ret;
@@ -3121,11 +3095,7 @@ namespace IronPython.Compiler {
 
         #region IDisposable Members
 
-        public void Dispose() {
-            if (_sourceReader != null) {
-                _sourceReader.Dispose();
-            }
-        }
+        public void Dispose() => _sourceReader?.Dispose();
 
         #endregion
 
@@ -3152,10 +3122,8 @@ namespace IronPython.Compiler {
                 Statement s = ParseStmt();
                 l.Add(s);
                 _fromFutureAllowed = false;
-                ExpressionStatement es = s as ExpressionStatement;
-                if (es != null) {
-                    ConstantExpression ce = es.Expression as ConstantExpression;
-                    if (ce != null && ce.Value is string) {
+                if (s is ExpressionStatement es) {
+                    if (es.Expression is ConstantExpression ce && ce.Value is string) {
                         // doc string
                         _fromFutureAllowed = true;
                     }
@@ -3169,8 +3137,7 @@ namespace IronPython.Compiler {
                 while (PeekToken(Tokens.KeywordFromToken)) {
                     Statement s = ParseStmt();
                     l.Add(s);
-                    FromImportStatement fis = s as FromImportStatement;
-                    if (fis != null && !fis.IsFromFuture) {
+                    if (s is FromImportStatement fis && !fis.IsFromFuture) {
                         // end of from __future__
                         break;
                     }
@@ -3191,8 +3158,7 @@ namespace IronPython.Compiler {
             Statement[] stmts = l.ToArray();
 
             if (returnValue && stmts.Length > 0) {
-                ExpressionStatement exprStmt = stmts[stmts.Length - 1] as ExpressionStatement;
-                if (exprStmt != null) {
+                if (stmts[stmts.Length - 1] is ExpressionStatement exprStmt) {
                     var retStmt = new ReturnStatement(exprStmt.Expression);
                     stmts[stmts.Length - 1] = retStmt;
                     retStmt.SetLoc(_globalParent, exprStmt.Expression.IndexSpan);
@@ -3306,8 +3272,7 @@ namespace IronPython.Compiler {
         }
 
         private Exception/*!*/ BadSourceError(BadSourceException bse) {
-            StreamReader sr = _sourceReader.BaseReader as StreamReader;
-            if (sr != null && sr.BaseStream.CanSeek) {
+            if (_sourceReader.BaseReader is StreamReader sr && sr.BaseStream.CanSeek) {
                 return PythonContext.ReportEncodingError(sr.BaseStream, _sourceUnit.Path);
 
             }

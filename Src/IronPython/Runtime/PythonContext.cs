@@ -44,7 +44,7 @@ namespace IronPython.Runtime
     public delegate int HashDelegate(object o, ref HashDelegate dlg);
 
     public sealed partial class PythonContext : LanguageContext {
-        internal const string/*!*/ IronPythonDisplayName = CurrentVersion.DisplayName;
+        internal static readonly string/*!*/ IronPythonDisplayName = CurrentVersion.DisplayName;
         internal const string/*!*/ IronPythonNames = "IronPython;Python;py";
         internal const string/*!*/ IronPythonFileExtensions = ".py";
 
@@ -289,10 +289,9 @@ namespace IronPython.Runtime
                         path.append(devStdLib);
                     }
 #else
-
                     if(RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
                         var dirs = new string[] { "lib", "DLLs" };
-                        var version = IronPython.CurrentVersion.ReleaseLevel == "final" ? $"{IronPython.CurrentVersion.Major}.{IronPython.CurrentVersion.Minor}.{IronPython.CurrentVersion.Micro}" : $"{IronPython.CurrentVersion.Major}.{IronPython.CurrentVersion.Minor}.{IronPython.CurrentVersion.Micro}-{IronPython.CurrentVersion.ReleaseLevel}{IronPython.CurrentVersion.ReleaseSerial}";
+                        var version = CurrentVersion.ReleaseLevel == "final" ? $"{CurrentVersion.Major}.{CurrentVersion.Minor}.{CurrentVersion.Micro}" : $"{CurrentVersion.Major}.{CurrentVersion.Minor}.{CurrentVersion.Micro}-{CurrentVersion.ReleaseLevel}{CurrentVersion.ReleaseSerial}";
                         foreach(var dir in dirs) {
                             var p = $"/Library/Frameworks/IronPython.framework/Versions/{version}/{dir}";
                             if(Directory.Exists(p)) {
@@ -518,8 +517,7 @@ namespace IronPython.Runtime
             }
 
             public int Hasher(object o, ref HashDelegate dlg) {
-                IPythonObject ipo = o as IPythonObject;
-                if (ipo != null && ipo.PythonType == _pt) {
+                if (o is IPythonObject ipo && ipo.PythonType == _pt) {
                     return _pt.Hash(o);
                 }
 
@@ -758,8 +756,7 @@ namespace IronPython.Runtime
         internal PythonModule GetModuleByPath(string/*!*/ path) {
             Assert.NotNull(path);
             foreach (object moduleObj in SystemStateModules.Values) {
-                PythonModule module = moduleObj as PythonModule;
-                if (module != null) {
+                if (moduleObj is PythonModule module) {
                     if (DomainManager.Platform.PathComparer.Compare(module.GetFile(), path) == 0) {
                         return module;
                     }
@@ -1465,8 +1462,7 @@ namespace IronPython.Runtime
         public override string FormatException(Exception exception) {
             ContractUtils.RequiresNotNull(exception, "exception");
 
-            SyntaxErrorException syntax_error = exception as SyntaxErrorException;
-            if (syntax_error != null) {
+            if (exception is SyntaxErrorException syntax_error) {
                 return FormatPythonSyntaxError(syntax_error);
             }
 
@@ -1564,8 +1560,7 @@ namespace IronPython.Runtime
 
             // dump the python exception.
             if (pythonException != null) {
-                string str = pythonException as string;
-                if (str != null) {
+                if (pythonException is string str) {
                     result += str;
                 } else {
                     result += GetPythonExceptionClassName(pythonException);
@@ -1930,7 +1925,7 @@ namespace IronPython.Runtime
         }
 
         internal void SetHostVariables(string prefix, string executable, string versionString) {
-            _initialVersionString = !string.IsNullOrEmpty(versionString) ? versionString : GetVersionString();
+            _initialVersionString = string.IsNullOrEmpty(versionString) ? null : versionString;
             _initialExecutable = executable ?? "";
             _initialPrefix = prefix;
 
@@ -1957,23 +1952,15 @@ namespace IronPython.Runtime
             dict["implementation"] = implementation;
             dict["version_info"] = implementation.version;
             dict["hexversion"] = implementation.hexversion;
-            dict["version"] = implementation.version.GetVersionString(
-                    _initialVersionString ?? GetVersionString());
+            dict["version"] = _initialVersionString ?? GetVersionString();
         }
 
         internal static string GetVersionString() {
-            string configuration = BuildInfo.IsDebug ? " DEBUG" : "";
-            string platform = Type.GetType("Mono.Runtime") == null ? ".NET" : "Mono";
+            string configuration = Runtime.ClrModule.IsDebug ? " DEBUG" : string.Empty;
             string bitness = (IntPtr.Size * 8).ToString();
 
-            return String.Format("{0}{3} ({1}) on {4} {2} ({5}-bit)",
-                                PythonContext.IronPythonDisplayName,
-                                PythonContext.GetPythonVersion().ToString(),
-                                Environment.Version,
-                                configuration,
-                                platform,
-                                bitness
-                                );
+            return $"{Implementation.Instance.version.GetVersionString()}{configuration} ({Runtime.ClrModule.FileVersion})\n" +
+                $"[{Runtime.ClrModule.TargetFramework} on {Runtime.ClrModule.FrameworkDescription} ({bitness}-bit)]";
         }
 
         private static string GetInitialPrefix() {
@@ -2199,14 +2186,12 @@ namespace IronPython.Runtime
         }
 
         internal bool TryConvertToWeakReferenceable(object obj, out IWeakReferenceable weakref) {
-            IWeakReferenceableByProxy iwrp = obj as IWeakReferenceableByProxy;
-            if (iwrp != null) {
+            if (obj is IWeakReferenceableByProxy iwrp) {
                 weakref = iwrp.GetWeakRefProxy(this);
                 return true;
             }
 
-            IWeakReferenceable iwr = obj as IWeakReferenceable;
-            if (iwr != null) {
+            if (obj is IWeakReferenceable iwr) {
                 weakref = iwr;
                 return true;
             }
@@ -3017,8 +3002,8 @@ namespace IronPython.Runtime
             if (PythonOps.TryGetBoundAttr(o, "__hash__", out hashFunction) && hashFunction != null) {
                  return true;
             }
-            var instance = o as OldInstance;
-            if (instance != null) {
+
+            if (o is OldInstance instance) {
                 if (instance.TryGetBoundCustomMember(DefaultContext.Default, "__hash__", out hashFunction) ||
                     ( ! instance.TryGetBoundCustomMember(DefaultContext.Default, "__cmp__", out hashFunction) &&
                       ! instance.TryGetBoundCustomMember(DefaultContext.Default, "__eq__", out hashFunction))) {
@@ -3986,8 +3971,7 @@ namespace IronPython.Runtime
             }
 
             public override bool Equals(object obj) {
-                OperationRetTypeKey<T> other = obj as OperationRetTypeKey<T>;
-                if (other != null) {
+                if (obj is OperationRetTypeKey<T> other) {
                     return Equals(other);
                 }
 
@@ -3999,8 +3983,7 @@ namespace IronPython.Runtime
         /// Gets a PythonContext given a DynamicMetaObjectBinder.
         /// </summary>
         public static PythonContext/*!*/ GetPythonContext(DynamicMetaObjectBinder/*!*/ action) {
-            IPythonSite pySite = action as IPythonSite;
-            if (pySite != null) {
+            if (action is IPythonSite pySite) {
                 return pySite.Context;
             }
 
@@ -4038,8 +4021,7 @@ namespace IronPython.Runtime
                 return Operations.ConvertTo<T>(res);
             }
 
-            StringDictionaryExpando dictStorage = scope.Storage as StringDictionaryExpando;
-            if (dictStorage != null && dictStorage.Dictionary.TryGetValue(name, out res)) {
+            if (scope.Storage is StringDictionaryExpando dictStorage && dictStorage.Dictionary.TryGetValue(name, out res)) {
                 return Operations.ConvertTo<T>(res);
             }
 
@@ -4053,8 +4035,7 @@ namespace IronPython.Runtime
                 return res;
             }
 
-            StringDictionaryExpando dictStorage = scope.Storage as StringDictionaryExpando;
-            if (dictStorage != null && dictStorage.Dictionary.TryGetValue(name, out res)) {
+            if (scope.Storage is StringDictionaryExpando dictStorage && dictStorage.Dictionary.TryGetValue(name, out res)) {
                 return res;
             }
 
@@ -4062,14 +4043,12 @@ namespace IronPython.Runtime
         }
 
         public override void ScopeSetVariable(Scope scope, string name, object value) {
-            var storage = scope.Storage as ScopeStorage;
-            if (storage != null) {
+            if (scope.Storage is ScopeStorage storage) {
                 storage.SetValue(name, false, value);
                 return;
             }
 
-            StringDictionaryExpando dictStorage = scope.Storage as StringDictionaryExpando;
-            if (dictStorage != null) {
+            if (scope.Storage is StringDictionaryExpando dictStorage) {
                 dictStorage.Dictionary[name] = value;
                 return;
             }
@@ -4078,13 +4057,11 @@ namespace IronPython.Runtime
         }
 
         public override bool ScopeTryGetVariable(Scope scope, string name, out dynamic value) {
-            var storage = scope.Storage as ScopeStorage;
-            if (storage != null && storage.TryGetValue(name, false, out value)) {
+            if (scope.Storage is ScopeStorage storage && storage.TryGetValue(name, false, out value)) {
                 return true;
             }
 
-            StringDictionaryExpando dictStorage = scope.Storage as StringDictionaryExpando;
-            if (dictStorage != null && dictStorage.Dictionary.TryGetValue(name, out value)) {
+            if (scope.Storage is StringDictionaryExpando dictStorage && dictStorage.Dictionary.TryGetValue(name, out value)) {
                 return true;
             }
 

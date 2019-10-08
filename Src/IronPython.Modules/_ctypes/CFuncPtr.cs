@@ -493,7 +493,6 @@ namespace IronPython.Modules {
                 private ArgumentMarshaller/*!*/[]/*!*/ GetArgumentMarshallers(DynamicMetaObject/*!*/[]/*!*/ args) {
                     CFuncPtrType funcType = ((CFuncPtrType)Value.NativeType);
                     ArgumentMarshaller[] res = new ArgumentMarshaller[args.Length];
-                    
 
                     // first arg is taken by self if we're a com method
                     for (int i = 0; i < args.Length; i++) {
@@ -660,11 +659,11 @@ namespace IronPython.Modules {
                 }
 
                 private static SignatureHelper GetMethodSigHelper(CallingConvention convention, Type calliRetType) {
-#if NETCOREAPP2_0 || NETCOREAPP2_1
+#if FEATURE_REFEMIT_FULL
+                    return SignatureHelper.GetMethodSigHelper(convention, calliRetType);
+#else
                     var helper = typeof(SignatureHelper).GetMethod("GetMethodSigHelper", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(CallingConvention), typeof(Type) }, null);
                     return (SignatureHelper)helper.Invoke(null, new object[] { convention, calliRetType });
-#else
-                    return SignatureHelper.GetMethodSigHelper(convention, calliRetType);
 #endif
                 }
 

@@ -57,9 +57,8 @@ namespace IronPython.Runtime.Binding {
 
             // we don't have CodeContext if an IDO falls back to us when we ask them to produce the Call
             DynamicMetaObject cc = args[0];
-            IPythonGetable icc = target as IPythonGetable;
 
-            if (icc != null) {
+            if (target is IPythonGetable icc) {
                 // get the member using our interface which also supports CodeContext.
                 return icc.GetMember(this, cc);
             } else if (target.Value is IDynamicMetaObjectProvider) {
@@ -76,8 +75,7 @@ namespace IronPython.Runtime.Binding {
         public override T BindDelegate<T>(CallSite<T> site, object[] args) {
             Debug.Assert(args[1].GetType() == typeof(CodeContext));
 
-            IFastGettable fastGet = args[0] as IFastGettable;
-            if (fastGet != null) {
+            if (args[0] is IFastGettable fastGet) {
                 T res = fastGet.MakeGetBinding<T>(site, this, (CodeContext)args[1], Name);
                 if (res != null) {
                     PerfTrack.NoteEvent(PerfTrack.Categories.BindingFast, "IFastGettable");
@@ -88,8 +86,7 @@ namespace IronPython.Runtime.Binding {
                 return base.BindDelegate<T>(site, args);
             }
 
-            IPythonObject pyObj = args[0] as IPythonObject;
-            if (pyObj != null && !(args[0] is IProxyObject)) {
+            if (args[0] is IPythonObject pyObj && !(args[0] is IProxyObject)) {
                 FastBindResult<T> res = UserTypeOps.MakeGetBinding<T>((CodeContext)args[1], site, pyObj, this);
                 if (res.Target != null) {
                     PerfTrack.NoteEvent(PerfTrack.Categories.BindingFast, "IPythonObject");
@@ -331,7 +328,7 @@ namespace IronPython.Runtime.Binding {
 
             MemberGroup members = Context.Binder.GetMember(MemberRequestKind.Get, type, name);
 
-            if (members.Count == 0 && type.IsInterface()) {
+            if (members.Count == 0 && type.IsInterface) {
                 // all interfaces have object members
                 type = typeof(object);
                 members = Context.Binder.GetMember(MemberRequestKind.Get, type, name);
@@ -623,7 +620,7 @@ namespace IronPython.Runtime.Binding {
 
             // Default binder can return something typed to boolean or int.
             // If that happens, we need to apply Python's boxing rules.
-            if (res.Expression.Type.IsValueType()) {
+            if (res.Expression.Type.IsValueType) {
                 res = new DynamicMetaObject(
                     AstUtils.Convert(res.Expression, typeof(object)),
                     res.Restrictions
@@ -669,8 +666,7 @@ namespace IronPython.Runtime.Binding {
         }
 
         public override bool Equals(object obj) {
-            PythonGetMemberBinder ob = obj as PythonGetMemberBinder;
-            if (ob == null) {
+            if (!(obj is PythonGetMemberBinder ob)) {
                 return false;
             }
 
@@ -766,8 +762,7 @@ namespace IronPython.Runtime.Binding {
         }
 
         public override bool Equals(object obj) {
-            CompatibilityGetMember ob = obj as CompatibilityGetMember;
-            if (ob == null) {
+            if (!(obj is CompatibilityGetMember ob)) {
                 return false;
             }
 

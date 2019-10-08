@@ -2,17 +2,18 @@
 // The .NET Foundation licenses this file to you under the Apache 2.0 License.
 // See the LICENSE file in the project root for more information.
 
-using System.Linq.Expressions;
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Dynamic;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
+
 using IronPython.Runtime.Binding;
 using IronPython.Runtime.Operations;
 using IronPython.Runtime.Types;
+
 using Microsoft.Scripting.Actions;
 using Microsoft.Scripting.Utils;
 
@@ -103,8 +104,7 @@ namespace IronPython.Runtime {
                 return 0;
             }
             public override bool Equals(object obj) {
-                AssemblyLoadInfo asmLoadInfo = obj as AssemblyLoadInfo;
-                if (asmLoadInfo != null) {
+                if (obj is AssemblyLoadInfo asmLoadInfo) {
                     return Equals(asmLoadInfo);
                 }
                 return false;
@@ -114,13 +114,27 @@ namespace IronPython.Runtime {
                 if (Namespaces != null || Types == null) {
                     HashSet<PythonType> loadedTypes = new HashSet<PythonType>();
                     var ns = Namespaces;
-                    
-                    foreach (var type in _asm.GetExportedTypes()) {
-                        if (type.IsExtension()) {
-                            if (ns != null && ns.Contains(type.Namespace)) {
+
+                    if (ns != null) {
+                        foreach (var type in _asm.GetExportedTypes()) {
+                            if (type.IsExtension() && ns.Contains(type.Namespace)) {
                                 loadedTypes.Add(DynamicHelpers.GetPythonTypeFromType(type));
                             }
                         }
+
+#if FEATURE_ASSEMBLY_GETFORWARDEDTYPES
+                        Type[] forwardedTypes;
+                        try {
+                            forwardedTypes = _asm.GetForwardedTypes();
+                        } catch (ReflectionTypeLoadException ex) {
+                            forwardedTypes = ex.Types;
+                        }
+                        foreach (var type in forwardedTypes) {
+                            if (type != null && type.IsExtension() && ns.Contains(type.Namespace)) {
+                                loadedTypes.Add(DynamicHelpers.GetPythonTypeFromType(type));
+                            }
+                        }
+#endif
                     }
 
                     var info = new AssemblyLoadInfo(_asm);
@@ -206,7 +220,7 @@ namespace IronPython.Runtime {
 
                     Debug.Assert(info.Types != null);
                     foreach (var containingType in info.Types) {
-                        foreach(var methodList in containingType.ExtensionMethods.Values) {                            
+                        foreach(var methodList in containingType.ExtensionMethods.Values) {
                             foreach (var method in methodList) {
                                 var methodParams = method.GetParameters();
                                 if (methodParams.Length == 0) {

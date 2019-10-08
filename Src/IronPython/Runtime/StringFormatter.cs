@@ -331,8 +331,7 @@ namespace IronPython.Runtime {
         }
 
         private object GetData(int index) {
-            PythonTuple dt = _data as PythonTuple;
-            if (dt != null) {
+            if (_data is PythonTuple dt) {
                 if (index < dt.__len__()) {
                     return dt[index];
                 }
@@ -346,10 +345,8 @@ namespace IronPython.Runtime {
         }
 
         private object GetKey(string key) {
-            IDictionary<object, object> map = _data as IDictionary<object, object>;
-            if (map == null) {
-                PythonDictionary dict = _data as PythonDictionary;
-                if (dict == null) {
+            if (!(_data is IDictionary<object, object> map)) {
+                if (!(_data is PythonDictionary dict)) {
                     if (PythonOps.IsMappingType(DefaultContext.Default, _data) == ScriptingRuntimeHelpers.True) {
                         return PythonOps.GetIndex(_context, _data, key);
                     }
@@ -667,6 +664,7 @@ namespace IronPython.Runtime {
             double doubleVal = (double)val;
             if (IsNegativeZero(doubleVal)) {
                 forceMinus = true;
+                val = 0.0;
             }
             if (fPos && (_opts.SignChar || _opts.Space)) {
                 string strval = (_opts.SignChar ? "+" : " ") + String.Format(_nfi, "{0:" + format + _opts.Precision + "}", val);

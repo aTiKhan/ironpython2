@@ -8,6 +8,7 @@
     <Features>$(Features);FEATURE_APARTMENTSTATE</Features>
     <Features>$(Features);FEATURE_APPLICATIONEXCEPTION</Features>
     <Features>$(Features);FEATURE_ASSEMBLY_CODEBASE</Features>
+    <Features>$(Features);FEATURE_ASSEMBLY_GETFORWARDEDTYPES</Features>
     <Features>$(Features);FEATURE_ASSEMBLY_LOCATION</Features>
     <Features>$(Features);FEATURE_ASSEMBLY_RESOLVE</Features>
     <Features>$(Features);FEATURE_ASSEMBLYBUILDER_DEFINEDYNAMICASSEMBLY</Features>
@@ -30,11 +31,13 @@
     <Features>$(Features);FEATURE_LOADWITHPARTIALNAME</Features>
     <Features>$(Features);FEATURE_METADATA_READER</Features>
     <Features>$(Features);FEATURE_MMAP</Features>
+    <Features>$(Features);FEATURE_NATIVE</Features>
     <Features>$(Features);FEATURE_OS_SERVICEPACK</Features>
     <Features>$(Features);FEATURE_PIPES</Features>
     <Features>$(Features);FEATURE_PROCESS</Features>
     <Features>$(Features);FEATURE_REFEMIT</Features>
     <Features>$(Features);FEATURE_REGISTRY</Features>
+    <Features>$(Features);FEATURE_RUNTIMEINFORMATION</Features>
     <Features>$(Features);FEATURE_SECURITY_RULES</Features>
     <Features>$(Features);FEATURE_SERIALIZATION</Features>
     <Features>$(Features);FEATURE_SORTKEY</Features>

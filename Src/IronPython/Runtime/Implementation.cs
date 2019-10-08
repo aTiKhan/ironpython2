@@ -1,13 +1,22 @@
-﻿using System.Linq;
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the Apache 2.0 License.
+// See the LICENSE file in the project root for more information.
+
+using System;
+using System.Linq;
+using System.Reflection;
+
 using IronPython.Runtime.Operations;
 
 namespace IronPython.Runtime {
     [PythonHidden, PythonType("sys.implementation")]
     public class Implementation {
-        internal static readonly string _Name = "IronPython";
-        internal static readonly string _name = _Name.ToLowerInvariant();
-        internal static readonly VersionInfo _version = new VersionInfo();
-        internal static readonly int _hexversion = _version.GetHexVersion();
+        private static readonly string _Name = "IronPython";
+        private static readonly string _name = _Name.ToLowerInvariant();
+        private static readonly VersionInfo _version = new VersionInfo();
+        private static readonly int _hexversion = _version.GetHexVersion();
+
+        internal static Implementation Instance { get; } = new Implementation();
 
         public readonly string cache_tag = null;
         public readonly string name = _name;
@@ -46,12 +55,12 @@ namespace IronPython.Runtime {
             this.serial = serial;
         }
 
-        internal VersionInfo() 
-            : this(CurrentVersion.Major, 
-                   CurrentVersion.Minor, 
+        internal VersionInfo()
+            : this(CurrentVersion.Major,
+                   CurrentVersion.Minor,
                    CurrentVersion.Micro,
                    CurrentVersion.ReleaseLevel,
-                   CurrentVersion.ReleaseSerial) {}
+                   CurrentVersion.ReleaseSerial) { }
 
         public override string __repr__(CodeContext context) {
             return string.Format("sys.version_info(major={0}, minor={1}, micro={2}, releaselevel='{3}', serial={4})",
@@ -60,7 +69,7 @@ namespace IronPython.Runtime {
 
         internal int GetHexVersion() {
             int hexlevel = 0;
-            switch(releaselevel) {
+            switch (releaselevel) {
                 case "alpha":
                     hexlevel = 0xA;
                     break;
@@ -85,15 +94,46 @@ namespace IronPython.Runtime {
                    (serial << 0);
         }
 
-        internal string GetVersionString(string _initialVersionString) {
-            var version = string.Format("{0}.{1}.{2}{4}{5} ({3})",
+        private string GetShortReleaseLevel() {
+            switch (releaselevel) {
+                case "alpha": return "a";
+                case "beta": return "b";
+                case "candidate": return "rc";
+                case "final": return "f";
+                default: return "";
+            }
+        }
+
+        internal string GetVersionString() {
+            return string.Format("{0}.{1}.{2}{3}{4}",
                 major,
                 minor,
                 micro,
-                _initialVersionString, 
-                releaselevel != "final" ? CurrentVersion.ShortReleaseLevel : "",
-                releaselevel != "final" ? serial.ToString() : "");
-            return version;
+                releaselevel != "final" ? GetShortReleaseLevel() : string.Empty,
+                releaselevel != "final" ? serial.ToString() : string.Empty);
+        }
+    }
+
+    internal static class CurrentVersion {
+        public static int Major { get; }
+        public static int Minor { get; }
+        public static int Micro { get; }
+        public static string ReleaseLevel { get; }
+        public static int ReleaseSerial { get; }
+        public static string Series { get; }
+        public static string DisplayName { get; }
+
+        static CurrentVersion() {
+            var assembly = typeof(CurrentVersion).Assembly;
+            var version = assembly.GetName().Version;
+            Major = version.Major;
+            Minor = version.Minor;
+            Micro = version.Build;
+            Series = version.ToString(2);
+            DisplayName = $"IronPython {version.ToString(3)}";
+            var split = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            ReleaseLevel = split[split.Length - 2];
+            ReleaseSerial = int.Parse(split[split.Length - 1]);
         }
     }
 }

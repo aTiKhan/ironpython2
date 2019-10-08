@@ -49,7 +49,7 @@ namespace IronPython.Modules {
         [SpecialName]
         public static void PerformModuleReload(PythonContext/*!*/ context, PythonDictionary/*!*/ dict) {
 
-            context.EnsureModuleException("ArgumentError", dict, "ArgumentError", "_ctypes");            
+            context.EnsureModuleException("ArgumentError", dict, "ArgumentError", "_ctypes");
 
             // TODO: Provide an implementation which is coordinated with our _refCountTable
             context.SystemState.__dict__["getrefcount"] = null;
@@ -101,7 +101,7 @@ namespace IronPython.Modules {
             try {
                 CData cdata = objHandle.Target as CData;
                 PythonType pt = (PythonType)typeHandle.Target;
-                
+
                 CData res = (CData)pt.CreateInstance(pt.Context.SharedContext);
                 if (IsPointer(pt)) {
                     res._memHolder = new MemoryHolder(IntPtr.Size);
@@ -171,18 +171,22 @@ namespace IronPython.Modules {
             return new Win32Exception(errorCode).Message;
         }
 
+        [PythonHidden(PlatformsAttribute.PlatformFamily.Unix)]
         public static void FreeLibrary(int handle) {
             FreeLibrary(new IntPtr(handle));
         }
 
+        [PythonHidden(PlatformsAttribute.PlatformFamily.Unix)]
         public static void FreeLibrary(BigInteger handle) {
             FreeLibrary(new IntPtr((long)handle));
         }
 
+        [PythonHidden(PlatformsAttribute.PlatformFamily.Unix)]
         public static void FreeLibrary(IntPtr handle) {
             NativeFunctions.FreeLibrary(handle);
         }
 
+        [PythonHidden(PlatformsAttribute.PlatformFamily.Unix)]
         public static object LoadLibrary(string library, [DefaultParameterValue(0)]int mode) {
             IntPtr res = NativeFunctions.LoadDLL(library, mode);
             if (res == IntPtr.Zero) {
@@ -340,7 +344,7 @@ namespace IronPython.Modules {
             return alignment(DynamicHelpers.GetPythonType(o));
         }
 
-        public static object byref(CData instance, int offset=0) {
+        public static object byref(CData instance, int offset = 0) {
             if (offset != 0) {
                 // new in 2.6
                 throw new NotImplementedException("byref w/ arg");
@@ -378,7 +382,7 @@ namespace IronPython.Modules {
 
         public static object call_function(CodeContext context, IntPtr address, PythonTuple args) {
             CFuncPtrType funcType = GetFunctionType(context, FUNCFLAG_STDCALL);
-            
+
             _CFuncPtr func = (_CFuncPtr)funcType.CreateInstance(context, address);
 
             return PythonOps.CallWithArgsTuple(func, new object[0], args);
@@ -444,13 +448,11 @@ namespace IronPython.Modules {
             // we can't support this without a native library
         }
 
+        [PythonHidden(PlatformsAttribute.PlatformFamily.Unix)]
         public static int set_last_error(int errorCode) {
-            if (Environment.OSVersion.Platform == PlatformID.Win32NT) {
-                int old_errno = NativeFunctions.GetLastError();
-                NativeFunctions.SetLastError(errorCode);
-                return old_errno;
-            }
-            throw PythonOps.NameError("set_last_error");
+            int old_errno = NativeFunctions.GetLastError();
+            NativeFunctions.SetLastError(errorCode);
+            return old_errno;
         }
 
         public static int @sizeof(PythonType/*!*/ type) {
@@ -495,11 +497,11 @@ namespace IronPython.Modules {
                 if (_dynamicModule == null) {
                     lock (_lock) {
                         if (_dynamicModule == null) {
-                            var attributes = new[] { 
+                            var attributes = new[] {
                                 new CustomAttributeBuilder(typeof(UnverifiableCodeAttribute).GetConstructor(ReflectionUtils.EmptyTypes), new object[0]),
-#if !NETCOREAPP2_0 && !NETCOREAPP2_1
+#if !NETCOREAPP && !NETSTANDARD
                                 //PermissionSet(SecurityAction.Demand, Unrestricted = true)
-                                new CustomAttributeBuilder(typeof(PermissionSetAttribute).GetConstructor(new Type[] { typeof(SecurityAction) }), 
+                                new CustomAttributeBuilder(typeof(PermissionSetAttribute).GetConstructor(new Type[] { typeof(SecurityAction) }),
                                     new object[]{ SecurityAction.Demand },
                                     new PropertyInfo[] { typeof(PermissionSetAttribute).GetProperty(nameof(PermissionSetAttribute.Unrestricted)) },
                                     new object[] { true }
@@ -508,10 +510,8 @@ namespace IronPython.Modules {
                             };
 
                             string name = typeof(CTypes).Namespace + ".DynamicAssembly";
-#if NETCOREAPP2_0 || NETCOREAPP2_1
                             var assembly = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(name), AssemblyBuilderAccess.Run, attributes);
-#else
-                            var assembly = AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName(name), AssemblyBuilderAccess.Run, attributes);
+#if !NETCOREAPP && !NETSTANDARD
                             assembly.DefineVersionInfoResource();
 #endif
                             _dynamicModule = assembly.DefineDynamicModule(name);
@@ -551,7 +551,7 @@ namespace IronPython.Modules {
                         sizeRemaining--;
                     }
 
-                    _nativeTypes[size] = res = tb.CreateType();
+                    _nativeTypes[size] = res = tb.CreateTypeInfo();
                 }
 
                 return res;
@@ -712,7 +712,7 @@ namespace IronPython.Modules {
             arr.NativeType.SetValue(arr._memHolder, 0, value);
         }
 
-        public static void DeleteCharArrayValue(_Array arr, object value) {
+        public static void DeleteCharArrayValue(_Array arr) {
             throw PythonOps.TypeError("cannot delete char array value");
         }
 
@@ -734,7 +734,7 @@ namespace IronPython.Modules {
 
         public static void SetWCharArrayRaw(_Array arr, object value) {
             PythonBuffer buf = value as PythonBuffer;
-            if (buf != null && (buf._object is string || buf._object is Bytes))  {
+            if (buf != null && (buf._object is string || buf._object is Bytes)) {
                 value = buf.ToString();
             }
 
@@ -751,13 +751,13 @@ namespace IronPython.Modules {
         }
 
         public static object DeleteWCharArrayRaw(_Array arr) {
-            throw PythonOps.TypeError("cannot delete wchar array raw");
+            throw PythonOps.AttributeError("cannot delete wchar array raw");
         }
-        
+
         class RefCountInfo {
             public int RefCount;
             public GCHandle Handle;
-        }        
+        }
 
         /// <summary>
         /// Emits the marshalling code to create a CData object for reverse marshalling.
@@ -774,7 +774,7 @@ namespace IronPython.Modules {
 
             method.Emit(OpCodes.Call, typeof(ModuleOps).GetMethod("CreateCData"));
         }
-      
+
         private static void EnsureRefCountTable() {
             if (_refCountTable == null) {
                 Interlocked.CompareExchange(ref _refCountTable, new Dictionary<object, RefCountInfo>(), null);
@@ -790,7 +790,7 @@ namespace IronPython.Modules {
 
             public override void __init__(params object[] args) {
                 base.__init__(args);
-                if(args.Length < 3) {
+                if (args.Length < 3) {
                     throw PythonOps.TypeError($"COMError() takes exactly 4 arguments({args.Length} given)");
                 }
 

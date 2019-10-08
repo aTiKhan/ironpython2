@@ -288,20 +288,17 @@ namespace IronPython.Compiler.Ast {
                         b.Walk(walker);
                     }
                 }
-                if (_body != null) {
-                    _body.Walk(walker);
-                }
+
+                _body?.Walk(walker);
             }
             walker.PostWalk(this);
         }
 
         private string FindSelfNames() {
-            SuiteStatement stmts = Body as SuiteStatement;
-            if (stmts == null) return "";
+            if (!(Body is SuiteStatement stmts)) return "";
 
             foreach (Statement stmt in stmts.Statements) {
-                FunctionDefinition def = stmt as FunctionDefinition;
-                if (def != null && def.Name == "__init__") {
+                if (stmt is FunctionDefinition def && def.Name == "__init__") {
                     return string.Join(",", SelfNameFinder.FindNames(def));
                 }
             }
@@ -333,8 +330,7 @@ namespace IronPython.Compiler.Ast {
             private Dictionary<string, bool> _names = new Dictionary<string, bool>(StringComparer.Ordinal);
 
             private bool IsSelfReference(Expression expr) {
-                NameExpression ne = expr as NameExpression;
-                if (ne == null) return false;
+                if (!(expr is NameExpression ne)) return false;
 
                 PythonVariable variable;
                 if (_function.TryGetVariable(ne.Name, out variable) && variable == _self.PythonVariable) {
@@ -354,8 +350,7 @@ namespace IronPython.Compiler.Ast {
 
             public override bool Walk(AssignmentStatement node) {
                 foreach (Expression lhs in node.Left) {
-                    MemberExpression me = lhs as MemberExpression;
-                    if (me != null) {
+                    if (lhs is MemberExpression me) {
                         if (IsSelfReference(me.Target)) {
                             _names[me.Name] = true;
                         }

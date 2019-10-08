@@ -342,8 +342,7 @@ namespace IronPython.Runtime.Binding {
             }
                         
             private void MakeSlotAccess(PythonTypeSlot dts) {
-                ReflectedSlotProperty rsp = dts as ReflectedSlotProperty;
-                if (rsp != null) {
+                if (dts is ReflectedSlotProperty rsp) {
                     // we need to fall back to __getattr__ if the value is not defined, so call it and check the result.
                     _bindingInfo.Body.AddCondition(
                         Ast.NotEqual(
@@ -361,8 +360,7 @@ namespace IronPython.Runtime.Binding {
                     return;
                 }
 
-                PythonTypeUserDescriptorSlot slot = dts as PythonTypeUserDescriptorSlot;
-                if (slot != null) {
+                if (dts is PythonTypeUserDescriptorSlot slot) {
                     _bindingInfo.Body.FinishCondition(
                         Ast.Call(
                             typeof(PythonOps).GetMethod(nameof(PythonOps.GetUserSlotValue)),
@@ -610,8 +608,7 @@ namespace IronPython.Runtime.Binding {
                 }
 
                 GetMemberDelegates func;
-                ReflectedSlotProperty rsp = _slot as ReflectedSlotProperty;
-                if (rsp != null) {
+                if (_slot is ReflectedSlotProperty rsp) {
                     Debug.Assert(!_dictAccess); // properties for __slots__ are get/set descriptors so we should never access the dictionary.
                     func = new GetMemberDelegates(OptimizedGetKind.PropertySlot, Value.PythonType, _binder, _binder.Name, _version, _slot, _getattrSlot, rsp.Getter, FallbackError(), _context.ModuleContext.ExtensionMethods);
                 } else if (_dictAccess) {
@@ -733,9 +730,7 @@ namespace IronPython.Runtime.Binding {
         /// </summary>
         private static bool TryGetGetAttribute(CodeContext/*!*/ context, PythonType/*!*/ type, out PythonTypeSlot dts) {
             if (type.TryResolveSlot(context, "__getattribute__", out dts)) {
-                BuiltinMethodDescriptor bmd = dts as BuiltinMethodDescriptor;
-
-                if (bmd == null || bmd.DeclaringType != typeof(object) ||
+                if (!(dts is BuiltinMethodDescriptor bmd) || bmd.DeclaringType != typeof(object) ||
                     bmd.Template.Targets.Count != 1 ||
                     bmd.Template.Targets[0].DeclaringType != typeof(ObjectOps) ||
                     bmd.Template.Targets[0].Name != "__getattribute__") {
@@ -814,8 +809,7 @@ namespace IronPython.Runtime.Binding {
                     bool isOldStyle,systemTypeResolution, extensionMethodResolution;
                     dts = FindSlot(_context, name, _instance, out isOldStyle, out systemTypeResolution, out extensionMethodResolution);
 
-                    ReflectedSlotProperty rsp = dts as ReflectedSlotProperty;
-                    if (rsp != null) {
+                    if (dts is ReflectedSlotProperty rsp) {
                         MakeSlotsSetTarget(rsp);
                         bound = true;
                     } else if (dts != null && dts.IsSetDescriptor(_context, _instance.PythonType)) {
@@ -1003,7 +997,7 @@ namespace IronPython.Runtime.Binding {
                     _target.Restrict(Instance.GetType()).Restrictions.Merge(_result.Restrictions)
                 );
                 
-                Debug.Assert(!_result.Expression.Type.IsValueType());
+                Debug.Assert(!_result.Expression.Type.IsValueType);
 
                 return BindingHelpers.AddDynamicTestAndDefer(
                     _info.Action,
@@ -1114,8 +1108,7 @@ namespace IronPython.Runtime.Binding {
         }
 
         private static bool IsStandardObjectMethod(PythonTypeSlot dts) {
-            BuiltinMethodDescriptor bmd = dts as BuiltinMethodDescriptor;
-            if (bmd == null) return false;
+            if (!(dts is BuiltinMethodDescriptor bmd)) return false;
             return bmd.Template.Targets[0].DeclaringType == typeof(ObjectOps);
         }
 
@@ -1252,8 +1245,7 @@ namespace IronPython.Runtime.Binding {
 
             // then see if we have a delete descriptor
             sdo.PythonType.TryResolveSlot(context, info.Action.Name, out dts);
-            ReflectedSlotProperty rsp = dts as ReflectedSlotProperty;
-            if (rsp != null) {
+            if (dts is ReflectedSlotProperty rsp) {
                 MakeSlotsDeleteTarget(info, rsp);
             }
             

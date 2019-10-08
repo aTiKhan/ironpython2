@@ -1,22 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
+  <Import Project="$(MSBuildThisFileDirectory)\CurrentVersion.props" />
+
   <PropertyGroup>
     <!-- These are normally set by Build.proj, except when building from VS. -->
     <RootDir Condition=" '$(RootDir)' == '' ">$(MSBuildThisFileDirectory)</RootDir>
     <BuildSysDir Condition=" '$(BuildSysDir)' == '' ">$(RootDir)Build</BuildSysDir>
     <ReferenceDir Condition=" '$(ReferenceDir)' == '' ">$(RootDir)Util\References</ReferenceDir>
 
-    <Mono Condition=" '$(Mono)' == '' AND '$(OS)' != 'Windows_NT' ">true</Mono>
+    <Mono Condition=" '$(Mono)' == '' AND '$(MSBuildRuntimeType)' == 'Mono' ">true</Mono>
     
     <!-- The following two lines prevent csc.rsp and Microsoft.NETFramework.props from adding
          additional assembly references. -->
     <NoConfig>true</NoConfig>
     <AddAdditionalExplicitAssemblyReferences>false</AddAdditionalExplicitAssemblyReferences>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+
+    <AssemblyFileRevision Condition="'$(ReleaseLevel)' == 'alpha'">000$(ReleaseSerial)</AssemblyFileRevision>
+    <AssemblyFileRevision Condition="'$(ReleaseLevel)' == 'beta'">00$(ReleaseSerial)0</AssemblyFileRevision>
+    <AssemblyFileRevision Condition="'$(ReleaseLevel)' == 'candidate'">0$(ReleaseSerial)00</AssemblyFileRevision>
+    <AssemblyFileRevision Condition="'$(ReleaseLevel)' == 'final'">1000</AssemblyFileRevision>
+
+    <Product>IronPython</Product>
+    <Company>IronPython Team</Company>
+    <Copyright>© IronPython Contributors</Copyright>
+    <AssemblyVersion>$(MajorVersion).$(MinorVersion).$(MicroVersion).$(AssemblyRevision)</AssemblyVersion>
+    <FileVersion>$(MajorVersion).$(MinorVersion).$(MicroVersion).$(AssemblyFileRevision)</FileVersion>
+    <InformationalVersion>$(MSBuildProjectName) $(MajorVersion).$(MinorVersion).$(MicroVersion) $(ReleaseLevel) $(ReleaseSerial)</InformationalVersion>
+
+    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+
+    <!-- Don't include SourceRevisionId in InformationalVersion (SourceLink) - causes issues with IronPython.Runtime.CurrentVersion if true -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+
+    <!-- DisplayVersion is used by the msi project -->
+    <ShortReleaseLevel Condition="'$(ReleaseLevel)' == 'alpha'">a</ShortReleaseLevel>
+    <ShortReleaseLevel Condition="'$(ReleaseLevel)' == 'beta'">b</ShortReleaseLevel>
+    <ShortReleaseLevel Condition="'$(ReleaseLevel)' == 'candidate'">rc</ShortReleaseLevel>
+    <ShortReleaseLevel Condition="'$(ReleaseLevel)' == 'final'">f</ShortReleaseLevel>
+
+    <DisplayVersion Condition="'$(ReleaseLevel)' == 'final' and '$(MicroVersion)' == '0'">$(MajorVersion).$(MinorVersion)</DisplayVersion>
+    <DisplayVersion Condition="'$(ReleaseLevel)' == 'final' and '$(MicroVersion)' != '0'">$(MajorVersion).$(MinorVersion).$(MicroVersion)</DisplayVersion>
+    <DisplayVersion Condition="'$(ReleaseLevel)' != 'final'">$(MajorVersion).$(MinorVersion).$(MicroVersion)$(ShortReleaseLevel)$(ReleaseSerial)</DisplayVersion>
   </PropertyGroup>
   
-  <Import Project="$(RootDir)CurrentVersion.props" />
-
   <!-- Signing -->
   <PropertyGroup>
     <PublicKey>$(BuildSysDir)\Key.snk</PublicKey>
@@ -32,8 +58,6 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <BeforeTargetFiles>$(BuildSysDir)\Versioning.targets</BeforeTargetFiles>
-    <BeforeTargets>GenerateBuildInfo</BeforeTargets>
     <AfterTargetFiles>$(BuildSysDir)\After.targets</AfterTargetFiles>
     <AfterTargets>Stage</AfterTargets>
   </PropertyGroup>
@@ -49,12 +73,12 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
   </PropertyGroup>
 
-  <!-- Normally BuildFlavour is set by the build system,
+  <!-- Normally Configuration is set by the build system,
        but they are not when building in Visual Studio (because Build.proj is not
        used). Fill then in here based on the selected configuration. -->
-  <PropertyGroup Condition=" '$(BuildFlavour)' == '' ">
-    <BuildFlavour>Debug</BuildFlavour>
-    <BuildFlavour Condition="'$(Configuration)' == 'Release'">Release</BuildFlavour>
+  <PropertyGroup Condition=" '$(Configuration)' == '' ">
+    <Configuration>Debug</Configuration>
+    <Configuration Condition="'$(Configuration)' == 'Release'">Release</Configuration>
   </PropertyGroup>
 
   <!-- References -->
@@ -75,16 +99,16 @@
   </PropertyGroup>
 
   <!-- Release -->
-  <PropertyGroup Condition="'$(BuildFlavour)' == 'Release'">
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugSymbols>false</DebugSymbols>
-    <DebugType>pdbonly</DebugType>
+    <DebugType>portable</DebugType>
     <Optimize>true</Optimize>
     <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
     <DefineConstants>$(Features);$(SignedSym);TRACE</DefineConstants>
   </PropertyGroup>
 
   <!-- Debug -->
-  <PropertyGroup Condition="'$(BuildFlavour)' == 'Debug'">
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>

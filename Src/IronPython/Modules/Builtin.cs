@@ -82,8 +82,7 @@ namespace IronPython.Modules {
                 return LightExceptions.Throw(PythonOps.ImportError("No module named {0}", name));
             }
 
-            PythonModule mod = ret as PythonModule;
-            if (mod != null && from != null) {
+            if (ret is PythonModule mod && from != null) {
                 string strAttrName;
                 for (int i = 0; i < from.Count; i++) {
                     object attrName = from[i];
@@ -168,7 +167,7 @@ namespace IronPython.Modules {
         
         public static string bin(object obj) {
             if (obj is int) return Int32Ops.ToBinary((int)obj);
-            if (obj is Index) return Int32Ops.ToBinary(Converter.ConvertToIndex((Index)obj));
+            if (obj is Runtime.Index) return Int32Ops.ToBinary(Converter.ConvertToIndex((Runtime.Index)obj));
             if (obj is BigInteger) return BigIntegerOps.ToBinary((BigInteger)obj);
 
             object res = PythonOps.Index(obj);
@@ -249,8 +248,7 @@ namespace IronPython.Modules {
 
             converted = TryCoerce(context, y, x);
             if (converted != null && converted != NotImplementedType.Value) {
-                PythonTuple pt = converted as PythonTuple;
-                if (pt != null && pt.Count == 2) {
+                if (converted is PythonTuple pt && pt.Count == 2) {
                     return PythonTuple.MakeTuple(pt[1], pt[0]);
                 }
             }
@@ -614,8 +612,7 @@ namespace IronPython.Modules {
 
         public static string format(CodeContext/*!*/ context, object argValue, [DefaultParameterValue("")]string formatSpec) {
             object res, formatMethod;
-            OldInstance oi = argValue as OldInstance;
-            if (oi != null && oi.TryGetBoundCustomMember(context, "__format__", out formatMethod)) {
+            if (argValue is OldInstance oi && oi.TryGetBoundCustomMember(context, "__format__", out formatMethod)) {
                 res = PythonOps.CallWithContext(context, formatMethod, formatSpec);
             } else {
                 // call __format__ with the format spec (__format__ is defined on object, so this always succeeds)
@@ -627,8 +624,7 @@ namespace IronPython.Modules {
                     out res);
             }
 
-            string strRes = res as string;
-            if (strRes == null) {
+            if (!(res is string strRes)) {
                 throw PythonOps.TypeError("{0}.__format__ must return string or unicode, not {1}", PythonTypeOps.GetName(argValue), PythonTypeOps.GetName(res));
             }
 
@@ -669,6 +665,10 @@ namespace IronPython.Modules {
 
         public static int hash(CodeContext/*!*/ context, int o) {
             return o;
+        }
+
+        public static int hash(CodeContext/*!*/ context, Extensible<int> o) {
+            return PythonContext.Hash(o);
         }
 
         public static int hash(CodeContext/*!*/ context, [NotNull]string o) {
@@ -923,8 +923,7 @@ namespace IronPython.Modules {
         }
 
         public static string intern(object o) {
-            string s = o as string;
-            if (s == null) {
+            if (!(o is string s)) {
                 throw PythonOps.TypeError("intern: argument must be string");
             }
             return string.Intern(s);
@@ -956,8 +955,7 @@ namespace IronPython.Modules {
 
         [LightThrowing]
         public static object issubclass(CodeContext/*!*/ context, object o, object typeinfo) {
-            PythonTuple pt = typeinfo as PythonTuple;
-            if (pt != null) {
+            if (typeinfo is PythonTuple pt) {
                 // Recursively inspect nested tuple(s)
                 foreach (object subTypeInfo in pt) {
                     try {
@@ -1072,8 +1070,7 @@ namespace IronPython.Modules {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1062:ValidateArgumentsOfPublicMethods")]
         public static object locals(CodeContext/*!*/ context) {
             PythonDictionary dict = context.Dict;
-            ObjectAttributesAdapter adapter = dict._storage as ObjectAttributesAdapter;
-            if (adapter != null) {
+            if (dict._storage is ObjectAttributesAdapter adapter) {
                 // we've wrapped Locals in an PythonDictionary, give the user back the
                 // original object.
                 return adapter.Backing;
@@ -1563,8 +1560,7 @@ namespace IronPython.Modules {
 
             string stringValue = value as string;
             if (stringValue == null) {
-                ExtensibleString es = value as ExtensibleString;
-                if (es != null) stringValue = es.Value;
+                if (value is ExtensibleString es) stringValue = es.Value;
             }
             
             if (stringValue != null) {
@@ -1574,8 +1570,7 @@ namespace IronPython.Modules {
                 return stringValue[0];
             }
 
-            IList<byte> bytes = value as IList<byte>;
-            if (bytes != null) {
+            if (value is IList<byte> bytes) {
                 if (bytes.Count != 1) {
                     throw PythonOps.TypeError("expected a character, but string of length {0} found", bytes.Count);
                 }

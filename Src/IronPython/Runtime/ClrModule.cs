@@ -43,7 +43,7 @@ namespace IronPython.Runtime {
     /// .NET/CLS interop with Python.  
     /// </summary>
     public static class ClrModule {
-#if NETCOREAPP2_0 || NETCOREAPP2_1
+#if NETCOREAPP
         public static readonly bool IsNetCoreApp = true;
 #else
         public static readonly bool IsNetCoreApp = false;
@@ -51,11 +51,31 @@ namespace IronPython.Runtime {
 
         public static string TargetFramework => typeof(ClrModule).Assembly.GetCustomAttribute<TargetFrameworkAttribute>()?.FrameworkName;
 
+        internal static string FileVersion => typeof(ClrModule).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
+
 #if DEBUG
         public static readonly bool IsDebug = true;
 #else
         public static readonly bool IsDebug = false;
 #endif
+
+        internal static string FrameworkDescription {
+            get {
+#if FEATURE_RUNTIMEINFORMATION
+                var frameworkDescription = RuntimeInformation.FrameworkDescription;
+                if (frameworkDescription.StartsWith(".NET Core 4.6.", StringComparison.OrdinalIgnoreCase)) {
+                    return $".NET Core 2.x ({frameworkDescription.Substring(10)})";
+                }
+                return frameworkDescription;
+#else
+                // try reflection since we're probably running on a newer runtime anyway
+                if (typeof(void).Assembly.GetType("System.Runtime.InteropServices.RuntimeInformation")?.GetProperty("FrameworkDescription")?.GetValue(null) is string frameworkDescription) {
+                    return frameworkDescription;
+                }
+                return (IsMono ? "Mono " : ".NET Framework ") + Environment.Version.ToString();
+#endif
+            }
+        }
 
         private static int _isMono = -1;
         public static bool IsMono {
@@ -382,8 +402,7 @@ the assembly object.")]
                 return;
             }
 
-            string strRef = reference as string;
-            if (strRef != null) {
+            if (reference is string strRef) {
                 AddReference(context, strRef);
                 return;
             }
@@ -656,8 +675,7 @@ import Namespace.")]
                 for (int i = start; i < args.Length + start; i++) {
                     PythonType dt = DynamicHelpers.GetPythonType(args[i - start]);
 
-                    PythonType expct = _expected[i] as PythonType;
-                    if (expct == null) expct = ((OldClass)_expected[i]).TypeObject;
+                    if (!(_expected[i] is PythonType expct)) expct = ((OldClass)_expected[i]).TypeObject;
                     if (dt != _expected[i] && !dt.IsSubclassOf(expct)) {
                         throw PythonOps.AssertionError("argument {0} has bad value (got {1}, expected {2})", i, dt, _expected[i]);
                     }
@@ -749,8 +767,7 @@ import Namespace.")]
 
                 PythonType dt = DynamicHelpers.GetPythonType(ret);
                 if (dt != _retType) {
-                    PythonType expct = _retType as PythonType;
-                    if (expct == null) expct = ((OldClass)_retType).TypeObject;
+                    if (!(_retType is PythonType expct)) expct = ((OldClass)_retType).TypeObject;
 
                     if (!dt.IsSubclassOf(expct))
                         throw PythonOps.AssertionError("bad return value returned (expected {0}, got {1})", _retType, dt);

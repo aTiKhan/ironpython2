@@ -40,17 +40,14 @@ namespace IronPython.Compiler.Ast {
 
         public override void Walk(PythonWalker walker) {
             if (walker.Walk(this)) {
-                if (_expression != null) {
-                    _expression.Walk(walker);
-                }
+                _expression?.Walk(walker);
             }
             walker.PostWalk(this);
         }
 
         public override string Documentation {
             get {
-                ConstantExpression ce = _expression as ConstantExpression;
-                if (ce != null) {
+                if (_expression is ConstantExpression ce) {
                     return ce.Value as string;
                 }
                 return null;

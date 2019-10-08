@@ -85,14 +85,24 @@ namespace IronPython.Modules {
             return PythonExceptions.CreateThrowable(PythonExceptions.WindowsError, code, FormatError(code));
         }
 
-        [PythonType("mmap"), PythonHidden(PlatformsAttribute.PlatformFamily.Windows)]
-        public class MmapUnix : mmap {
+        public static PythonType mmap {
+            get {
+                if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                    return DynamicHelpers.GetPythonTypeFromType(typeof(MmapDefault));
+                }
+
+                return DynamicHelpers.GetPythonTypeFromType(typeof(MmapUnix));
+            }
+        }
+
+        [PythonType("mmap.mmap"), PythonHidden]
+        public class MmapUnix : MmapDefault{
             public MmapUnix(CodeContext/*!*/ context, int fileno, long length, string tagname = null, int access = ACCESS_WRITE, long offset = 0, int flags = MAP_SHARED, int prot = PROT_WRITE | PROT_READ)
                 : base(context, fileno, length, tagname, access, offset) { }
         }
 
-        [PythonType("mmap"), PythonHidden(PlatformsAttribute.PlatformFamily.Unix)]
-        public class mmap {
+        [PythonType("mmap.mmap"), PythonHidden]
+        public class MmapDefault {
             private MemoryMappedFile _file;
             private MemoryMappedViewAccessor _view;
             private long _position;
@@ -105,7 +115,7 @@ namespace IronPython.Modules {
             private volatile bool _isClosed;
             private int _refCount = 1;
 
-            public mmap(CodeContext/*!*/ context, int fileno, long length, string tagname = null, int access = ACCESS_WRITE, long offset = 0) {
+            public MmapDefault(CodeContext/*!*/ context, int fileno, long length, string tagname = null, int access = ACCESS_WRITE, long offset = 0) {
                 switch (access) {
                     case ACCESS_READ:
                         _fileAccess = MemoryMappedFileAccess.Read;
@@ -154,14 +164,17 @@ namespace IronPython.Modules {
                     // Memory-map an actual file
                     _offset = offset;
 
-                    PythonFile file;
                     PythonContext pContext = context.LanguageContext;
-                    if (!pContext.FileManager.TryGetFileFromId(pContext, fileno, out file)) {
+                    if (pContext.FileManager.TryGetFileFromId(pContext, fileno, out PythonFile file)) {
+                        if ((_sourceStream = file._stream as FileStream) == null) {
+                            throw WindowsError(PythonExceptions._WindowsError.ERROR_INVALID_HANDLE);
+                        }
+                    } else if (pContext.FileManager.TryGetObjectFromId(pContext, fileno, out object obj) && obj is PythonIOModule.FileIO fileio) {
+                        if ((_sourceStream = fileio._readStream as FileStream) == null) {
+                            throw WindowsError(PythonExceptions._WindowsError.ERROR_INVALID_HANDLE);
+                        }
+                    } else {
                         throw Error(context, PythonExceptions._WindowsError.ERROR_INVALID_BLOCK, "Bad file descriptor");
-                    }
-
-                    if ((_sourceStream = file._stream as FileStream) == null) {
-                        throw WindowsError(PythonExceptions._WindowsError.ERROR_INVALID_HANDLE);
                     }
 
                     if (_fileAccess == MemoryMappedFileAccess.ReadWrite && !_sourceStream.CanWrite) {
@@ -837,9 +850,9 @@ namespace IronPython.Modules {
             }
 
             private struct MmapLocker : IDisposable {
-                private readonly mmap _mmap;
+                private readonly MmapDefault _mmap;
 
-                public MmapLocker(mmap mmap) {
+                public MmapLocker(MmapDefault mmap) {
                     _mmap = mmap;
                     Interlocked.Increment(ref _mmap._refCount);
                     _mmap.EnsureOpen();

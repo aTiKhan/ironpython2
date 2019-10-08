@@ -71,8 +71,7 @@ namespace IronPython.Runtime.Binding {
             }
 
 
-            IPythonConvertible convertible = target as IPythonConvertible;
-            if (convertible != null) {
+            if (target is IPythonConvertible convertible) {
                 res = convertible.BindConvert(this);
             } else if (res == null) {
                 res = BindConvert(self);
@@ -96,7 +95,7 @@ namespace IronPython.Runtime.Binding {
 
                 return (_kind == ConversionResultKind.ExplicitCast || _kind == ConversionResultKind.ImplicitCast) ?
                     Type :
-                    _type.IsValueType() ?
+                    _type.IsValueType ?
                         typeof(object) :
                         _type;
             }
@@ -216,7 +215,7 @@ namespace IronPython.Runtime.Binding {
                     break;
             }
 
-            if (type.IsEnum() && Enum.GetUnderlyingType(type) == self.GetLimitType()) {
+            if (type.IsEnum && Enum.GetUnderlyingType(type) == self.GetLimitType()) {
                 // numeric type to enum, this is ok if the value is zero
                 object value = Activator.CreateInstance(type);
 
@@ -345,8 +344,7 @@ namespace IronPython.Runtime.Binding {
         }
 
         public string StringConversion(CallSite site, object value) {
-            string str = value as string;
-            if (str != null) {
+            if (value is string str) {
                 return str;
             }
 
@@ -565,8 +563,7 @@ namespace IronPython.Runtime.Binding {
         }
 
         public override bool Equals(object obj) {
-            PythonConversionBinder ob = obj as PythonConversionBinder;
-            if (ob == null) {
+            if (!(obj is PythonConversionBinder ob)) {
                 return false;
             }
 
@@ -623,8 +620,7 @@ namespace IronPython.Runtime.Binding {
             string strVal = self.Value as string;
             Expression strExpr = self.Expression;
             if (strVal == null) {
-                Extensible<string> extstr = self.Value as Extensible<string>;
-                if (extstr != null) {
+                if (self.Value is Extensible<string> extstr) {
                     strVal = extstr.Value;
                     strExpr =
                         Ast.Property(
@@ -648,12 +644,11 @@ namespace IronPython.Runtime.Binding {
                     ),
                     typeof(string).GetProperty("Length")
                 );
-
                 if (strVal.Length == 1) {
                     res = new DynamicMetaObject(
                         Ast.Call(
                             AstUtils.Convert(strExpr, typeof(string)),
-                            typeof(string).GetMethod("get_Chars"),
+                            typeof(string).GetMethod("get_Chars", new[] { typeof(int) }),
                             AstUtils.Constant(0)
                         ),
                         self.Restrictions.Merge(BindingRestrictions.GetExpressionRestriction(Ast.Equal(getLen, AstUtils.Constant(1))))
@@ -703,7 +698,7 @@ namespace IronPython.Runtime.Binding {
             } else if (typeof(IStrongBox).IsAssignableFrom(self.GetLimitType())) {
                 // Explictly block conversion of References to bool
                 res = MakeStrongBoxToBoolConversionError(self);
-            } else if (self.GetLimitType().IsPrimitive() || self.GetLimitType().IsEnum()) {
+            } else if (self.GetLimitType().IsPrimitive || self.GetLimitType().IsEnum) {
                 // optimization - rather than doing a method call for primitives and enums generate
                 // the comparison to zero directly.
                 res = MakePrimitiveToBoolComparison(self);

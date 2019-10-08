@@ -36,8 +36,7 @@ namespace IronPython.Runtime.Binding {
         }
 
         public override bool Equals(object obj) {
-            PythonUnaryOperationBinder ob = obj as PythonUnaryOperationBinder;
-            if (ob == null) {
+            if (!(obj is PythonUnaryOperationBinder ob)) {
                 return false;
             }
 
@@ -121,8 +120,7 @@ namespace IronPython.Runtime.Binding {
         }
 
         private bool StringIsFalse(CallSite site, object value) {
-            string strVal = value as string;
-            if (strVal != null) {
+            if (value is string strVal) {
                 return strVal.Length == 0;
             } else if (value == null) {
                 // improve perf of sites just polymorphic on str & None
@@ -185,8 +183,7 @@ namespace IronPython.Runtime.Binding {
         }
 
         private object StringNot(CallSite site, object value) {
-            string strVal = value as string;
-            if (strVal != null) {
+            if (value is string strVal) {
                 return strVal.Length == 0 ? ScriptingRuntimeHelpers.True : ScriptingRuntimeHelpers.False;
             } else if (value == null) {
                 // improve perf of sites just polymorphic on str & None

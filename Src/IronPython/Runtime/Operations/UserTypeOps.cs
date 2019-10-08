@@ -37,8 +37,7 @@ namespace IronPython.Runtime.Operations {
         }
 
         public static object GetPropertyHelper(object prop, object instance, string name) {
-            PythonTypeSlot desc = prop as PythonTypeSlot;
-            if (desc == null) {
+            if (!(prop is PythonTypeSlot desc)) {
                 throw PythonOps.TypeError("Expected property for {0}, but found {1}",
                     name.ToString(), DynamicHelpers.GetPythonType(prop).Name);
             }
@@ -48,8 +47,7 @@ namespace IronPython.Runtime.Operations {
         }
 
         public static void SetPropertyHelper(object prop, object instance, object newValue, string name) {
-            PythonTypeSlot desc = prop as PythonTypeSlot;
-            if (desc == null) {
+            if (!(prop is PythonTypeSlot desc)) {
                 throw PythonOps.TypeError("Expected settable property for {0}, but found {1}",
                     name.ToString(), DynamicHelpers.GetPythonType(prop).Name);
             }
@@ -68,11 +66,8 @@ namespace IronPython.Runtime.Operations {
 
         public static WeakRefTracker GetWeakRefHelper(IPythonObject obj) {
             object[] slots = obj.GetSlots();
-            if (slots == null) {
-                return null;
-            }
 
-            return (WeakRefTracker)slots[slots.Length - 1];
+            return (WeakRefTracker)slots?[slots.Length - 1];
         }
 
         public static void SetFinalizerHelper(IPythonObject obj, WeakRefTracker value) {
@@ -100,8 +95,7 @@ namespace IronPython.Runtime.Operations {
 
             // TODO: dt gives us a PythonContext which we should use
             PythonType dt = instance.PythonType;
-            PythonTypeSlot dts = method as PythonTypeSlot;
-            if (dts != null) {
+            if (method is PythonTypeSlot dts) {
                 if (!dts.TryGetValue(DefaultContext.Default, instance, dt, out callable))
                     throw PythonOps.AttributeErrorForMissingAttribute(dt.Name, name);
             }
@@ -119,8 +113,7 @@ namespace IronPython.Runtime.Operations {
         }
 
         public static bool TryGetMixedNewStyleOldStyleSlot(CodeContext context, object instance, string name, out object value) {
-            IPythonObject sdo = instance as IPythonObject;
-            if (sdo != null) {
+            if (instance is IPythonObject sdo) {
                 PythonDictionary dict = sdo.Dict;
                 if (dict != null && dict.TryGetValue(name, out value)) {
                     return true;

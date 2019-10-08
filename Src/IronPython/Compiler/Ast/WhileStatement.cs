@@ -81,10 +81,8 @@ namespace IronPython.Compiler.Ast {
             // Only the body is "in the loop" for the purposes of break/continue
             // The "else" clause is outside
 
-            ConstantExpression constTest = _test as ConstantExpression;
-            if (constTest != null && constTest.Value is int) {
+            if (_test is ConstantExpression constTest && constTest.Value is int val) {
                 // while 0: / while 1:
-                int val = (int)constTest.Value;
                 if (val == 0) {
                     // completely optimize the loop away
                     if (_else == null) {
@@ -126,15 +124,9 @@ namespace IronPython.Compiler.Ast {
 
         public override void Walk(PythonWalker walker) {
             if (walker.Walk(this)) {
-                if (_test != null) {
-                    _test.Walk(walker);
-                }
-                if (_body != null) {
-                    _body.Walk(walker);
-                }
-                if (_else != null) {
-                    _else.Walk(walker);
-                }
+                _test?.Walk(walker);
+                _body?.Walk(walker);
+                _else?.Walk(walker);
             }
             walker.PostWalk(this);
         }

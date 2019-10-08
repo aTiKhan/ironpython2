@@ -275,7 +275,7 @@ namespace IronPython.Modules {
             return context.LanguageContext.DomainManager.Platform.CurrentDirectory;
         }
 
-#if NETCOREAPP2_0 || NETCOREAPP2_1
+#if NETCOREAPP || NETSTANDARD
         private static readonly char[] invalidPathChars = new char[] { '\"', '<', '>' };
 #endif
 
@@ -316,7 +316,7 @@ namespace IronPython.Modules {
                     newdir = newdir.Replace(c, Char.MaxValue);
                 }
 
-#if NETCOREAPP2_0 || NETCOREAPP2_1
+#if NETCOREAPP || NETSTANDARD
                 foreach (char c in invalidPathChars) {
                     newdir = newdir.Replace(c, Char.MaxValue);
                 }
@@ -446,7 +446,8 @@ namespace IronPython.Modules {
                 FileAccess access = FileAccessFromFlags(flag);
                 FileOptions options = FileOptionsFromFlags(flag);
                 Stream fs;
-                if (Environment.OSVersion.Platform == PlatformID.Win32NT && (String.Compare(filename, "nul", true) == 0)) {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && string.Equals(filename, "nul", StringComparison.OrdinalIgnoreCase)
+                    || (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) && filename == "/dev/null") {
                     fs = Stream.Null;
                 } else if (access == FileAccess.Read && (fileMode == FileMode.CreateNew || fileMode == FileMode.Create || fileMode == FileMode.Append)) {
                     // .NET doesn't allow Create/CreateNew w/ access == Read, so create the file, then close it, then
@@ -1549,16 +1550,26 @@ namespace IronPython.Modules {
         }
 
 #if FEATURE_PROCESS
+        [DllImport("libc", SetLastError = true, EntryPoint = "kill")]
+        private static extern int sys_kill(int pid, int sig);
+
         [Documentation(@"Send signal sig to the process pid. Constants for the specific signals available on the host platform 
 are defined in the signal module.")]
         public static void kill(CodeContext/*!*/ context, int pid, int sig) {
-            if (PythonSignal.NativeSignal.GenerateConsoleCtrlEvent((uint)sig, (uint)pid)) return;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
+                RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                if (sys_kill(pid, sig) == 0) return;
 
-            //If the calls to GenerateConsoleCtrlEvent didn't work, simply
-            //forcefully kill the process.
-            Process toKill = Process.GetProcessById(pid);
-            toKill.Kill();
-            return;
+                var error = Marshal.GetLastWin32Error();
+                throw PythonExceptions.CreateThrowable(PythonExceptions.OSError, error, strerror(error));
+            } else {
+                if (PythonSignal.NativeSignal.GenerateConsoleCtrlEvent((uint)sig, (uint)pid)) return;
+
+                // If the calls to GenerateConsoleCtrlEvent didn't work, simply
+                // forcefully kill the process.
+                Process toKill = Process.GetProcessById(pid);
+                toKill.Kill();
+            }
         }
 #endif
 
