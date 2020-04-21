@@ -1045,8 +1045,8 @@ namespace IronPython.Modules {
             return collection.Count;
         }
 
-        public static int len(object o) {
-            return PythonOps.Length(o);
+        public static object len(object o) {
+            return PythonOps.Length(o, out int res, out BigInteger bigRes) ? (object)res : bigRes;
         }
 
         public static PythonType set {
@@ -2016,11 +2016,11 @@ namespace IronPython.Modules {
         }
         
         public static double round(double number) {
-            return MathUtils.RoundAwayFromZero(number);
+            return MathUtils.Round(number, 0, MidpointRounding.AwayFromZero);
         }
 
         public static double round(double number, int ndigits) {
-            return PythonOps.CheckMath(number, MathUtils.RoundAwayFromZero(number, ndigits));
+            return PythonOps.CheckMath(number, MathUtils.Round(number, ndigits, MidpointRounding.AwayFromZero));
         }
 
         public static double round(double number, BigInteger ndigits) {
